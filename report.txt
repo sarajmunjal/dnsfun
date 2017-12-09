@@ -20,14 +20,13 @@ pip install netifaces
 1. sudo python dnsinject.py -h hosts.txt 'udp dst port 53' (spoof all DNS packets)
 
 Sample from n.pcap file (included)
-05:15:14.259135 IP resolver1.opendns.com.domain > 192.168.43.209.52829: 31195 2/0/0 CNAME p28-btmmdns.icloud.com.akadns.net., A 17.110.240.12 (103)
------ DNS request for Facebook.com ------
-05:15:22.708474 IP 192.168.43.209.51169 > resolver1.opendns.com.domain: 38675+ [1au] A? facebook.com. (41)
------ Local dnsinject machine sends packet first (102.168.43.65) ------
-05:15:22.713824 IP resolver1.opendns.com.domain > 192.168.43.209.51169: 38675- [0q] 1/0/0 A 192.168.43.65 (40)
------ Response from OpenDNS arrives later (102.168.43.65) ------
-05:15:22.778838 IP resolver1.opendns.com.domain > 192.168.43.209.51169: 38675 1/0/1 A 157.240.2.35 (57)
-05:15:23.002552 IP 192.168.43.209.65008 > resolver1.opendns.com.domain: 32696+ A? gateway.icloud.com. (36)
+----- DNS request for Medium.com ------
+06:16:57.828549 IP 192.168.43.117.47703 > dns1.safedns.com.domain: 29545+ [1au] A? medium.com. (39)
+----- Local dnsinject machine sends packet first (192.168.43.65) ------
+06:16:57.833809 IP dns1.safedns.com.domain > 192.168.43.117.47703: 29545- [0q] 1/0/0 A 192.168.43.65 (38)
+----- Response from OpenDNS arrives later ------
+06:16:57.922361 IP dns1.safedns.com.domain > 192.168.43.117.47703: 29545 5/0/1 A 104.16.120.127, A 104.16.124.127, A 104.16.122.127, A 104.16.121.127, A 104.16.123.127 (119)
+
 
 Estimated latency: ~= 10 ms for injection, on current setup with VMWare Fusion in bridged configuration
 
@@ -50,6 +49,12 @@ pip install netifaces
 
 ####Example:
 1. sudo python dnsdetect.py -i ens33 'udp src port 53'
+
+### Sample output:
+2017-12-09 11:16:57 DNS poisoning attempt
+TXID 29545 Request medium.com.
+Original IPs:['192.168.43.65'] , original TTLs:[0]
+New IPs ['104.16.121.127', '104.16.120.127', '104.16.123.127', '104.16.122.127', '104.16.124.127'], new TTLs: [300]
 
 #### Logic for identifying false positives:
 If two DNS responses have different IP addresses but their TTL is the same, it is highly probable that they are from the correct

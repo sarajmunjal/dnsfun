@@ -3,13 +3,11 @@ import sys, getopt
 import netifaces
 import time
 
-
 def callback(map, local_ip):
     def process(pkt):
         if DNS in pkt and pkt[DNS].qr == 1 and pkt[IP].dst == local_ip:
-            print repr(pkt[DNS])
             txn_id = pkt[DNS].id
-            q_url = pkt[DNSQR].qname
+            q_url = pkt[DNSRR][0].rrname
             key = (txn_id, q_url)
             ip_addrs = set()
             ancnt = pkt[DNS].ancount
@@ -17,9 +15,9 @@ def callback(map, local_ip):
             for i in range(ancnt):
                 ip_addrs.add(pkt[DNSRR][i].rdata)
                 ttls.add(pkt[DNSRR][i].ttl)
-
-            print 'q_url:{0}, txn_id : {1}, IPs: {2}, acnt: {3}, ttl:{4}'.format(q_url, txn_id, str(ip_addrs), ancnt,
-                                                                                 ttls)
+            #
+            # print 'q_url:{0}, txn_id : {1}, IPs: {2}, acnt: {3}, ttl:{4}'.format(q_url, txn_id, str(ip_addrs), ancnt,
+            #                                                                      ttls)
             if key in map:
                 existing_val = map[key]
                 # IP will be same
@@ -29,10 +27,15 @@ def callback(map, local_ip):
                 if ttls == existing_val[2]:
                     print 'False positive case with matching TTL values'
                     return ''
-                print '{0} DNS poisoning attempt '.format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+                print '{0} DNS poisoning attempt '.format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(pkt.time)))
                 print 'TXID {0} Request {1}'.format(txn_id, q_url)
-                print 'Original IPs:{0} , original TTLs:'.format(str(existing_val[0]), str(existing_val(2)))
-                print 'New IPs {0}'.format(str(ip_addrs))
+                print 'Original IPs:{0} , original TTLs:{1}'.format(str(list(existing_val[0])), str(list(existing_val[2])))
+                print 'New IPs {0}, new TTLs: {1}'.format(str(list(ip_addrs)), str(list(ttls)))
+                # print 'Packet:-'
+                # print repr(pkt[DNS])
+                print '\n'
+                print '-----------------------------------------------------'
+                print '\n'
             else:
                 map[key] = (ip_addrs, ancnt, ttls)
                 return
