@@ -17,7 +17,7 @@ pip install netifaces
 3. expression (compulsory): BPF filter to apply while listening
 
 ####Example:
-1. sudo python dnsinject.py -h hosts.txt 'udp dst port 53' (spoof all DNS packets)
+1. sudo python dnsinject.py -h hosts.txt 'udp dst port 53'
 
 Sample from n.pcap file (included)
 ----- DNS request for Medium.com ------
@@ -66,7 +66,7 @@ DNS server. It is quite tough(improbable) for an attacker to guess TTL correctly
 * NetID: smunjal
 * ID #: 111497962
 
-### References
+### References (for logic and some code samples)
 [1] Multiple posts on [www.stackoverflow.com](https://www.stackoverflow.com)
 [2] Scapy tutorial [https://thepacketgeek.com/scapy-p-09-scapy-and-dns/](https://thepacketgeek.com/scapy-p-09-scapy-and-dns/)
 [3] DNS protocol details from Wikipedia [https://en.wikipedia.org/wiki/List_of_DNS_record_types] (https://en.wikipedia.org/wiki/List_of_DNS_record_types/)
