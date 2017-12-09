@@ -17,8 +17,21 @@ pip install netifaces
 3. expression (compulsory): BPF filter to apply while listening
 
 ####Example:
-1. sudo python dnsinject.py -i ens33 'udp dst port 53' (spoof all DNS packets)
+1. sudo python dnsinject.py -h hosts.txt 'udp dst port 53' (spoof all DNS packets)
 
+Sample from n.pcap file (included)
+05:15:14.259135 IP resolver1.opendns.com.domain > 192.168.43.209.52829: 31195 2/0/0 CNAME p28-btmmdns.icloud.com.akadns.net., A 17.110.240.12 (103)
+----- DNS request for Facebook.com ------
+05:15:22.708474 IP 192.168.43.209.51169 > resolver1.opendns.com.domain: 38675+ [1au] A? facebook.com. (41)
+----- Local dnsinject machine sends packet first (102.168.43.65) ------
+05:15:22.713824 IP resolver1.opendns.com.domain > 192.168.43.209.51169: 38675- [0q] 1/0/0 A 192.168.43.65 (40)
+----- Response from OpenDNS arrives later (102.168.43.65) ------
+05:15:22.778838 IP resolver1.opendns.com.domain > 192.168.43.209.51169: 38675 1/0/1 A 157.240.2.35 (57)
+05:15:23.002552 IP 192.168.43.209.65008 > resolver1.opendns.com.domain: 32696+ A? gateway.icloud.com. (36)
+
+Estimated latency: ~= 10 ms for injection, on current setup with VMWare Fusion in bridged configuration
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Dnsdetect
 

