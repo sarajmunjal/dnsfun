@@ -1,0 +1,69 @@
+# Homework 4: CSE 508, Fall 2017
+
+
+## Dnsinject
+
+### Description
+A tool for DNS cache poisoning using packet injection
+
+### Installing dependencies(Ubuntu)
+pip install scapy
+pip install netifaces
+
+
+### Arguments supported
+1. [-h] (optional): optional file containing IP and host mapping: if an packet is from IP X and queries for host Y, then poison it
+2. [-i] (optional): network interface for listening
+3. expression (compulsory): BPF filter to apply while listening
+
+####Example:
+1. If connecting to a pbproxy service on localhost:2234
+`./bin/pbproxy -k mykey localhost 2234`
+2. If tunneling SSH (-v for verbose SSH) via PbProxy service on localhost:2234
+`ssh -o 'ProxyCommand ./bin/pbproxy -k  mykey localhost 2234' -v localhost`
+
+##### In server mode
+1. Listen to connection on port 2234 and forward to localhost:1234
+`./bin/pbproxy -k mykey -l 2234 localhost 1234`
+2. If tunneling SSH
+`./bin/pbproxy -k mykey -l 2234 localhost 22`
+
+
+## Dnsdetect
+
+### Description
+A tool for detecting and warning against possible DNS cache poisoning attacks
+
+### Installing dependencies(Ubuntu)
+pip install scapy
+pip install netifaces
+
+
+### Arguments supported
+1. [-r] (optional): pcap file for offline reading of packets instead of listening live
+2. [-i] (optional): network interface for listening
+3. expression (compulsory): BPF filter to apply while listening
+
+#### Logic for :
+1. If connecting to a pbproxy service on localhost:2234
+`./bin/pbproxy -k mykey localhost 2234`
+2. If tunneling SSH (-v for verbose SSH) via PbProxy service on localhost:2234
+`ssh -o 'ProxyCommand ./bin/pbproxy -k  mykey localhost 2234' -v localhost`
+
+##### In server mode
+1. Listen to connection on port 2234 and forward to localhost:1234
+`./bin/pbproxy -k mykey -l 2234 localhost 1234`
+2. If tunneling SSH
+`./bin/pbproxy -k mykey -l 2234 localhost 22`
+
+
+
+### Student details
+* Name: Saraj Munjal
+* NetID: smunjal
+* ID #: 111497962
+
+### References
+[1] Multiple posts on [www.stackoverflow.com](https://www.stackoverflow.com)
+[2] Scapy tutorial [https://thepacketgeek.com/scapy-p-09-scapy-and-dns/](https://thepacketgeek.com/scapy-p-09-scapy-and-dns/)
+[3] DNS protocol details from Wikipedia [https://en.wikipedia.org/wiki/List_of_DNS_record_types] (https://en.wikipedia.org/wiki/List_of_DNS_record_types/)

