@@ -1,28 +1,43 @@
 from scapy.all import *
 import sys, getopt
 import netifaces
+import time
 
 
-def callback(dict, local_ip):
+def callback(map, local_ip):
     def process(pkt):
-        if DNS in pkt and pkt[DNS].opcode == 0 and pkt[DNS].ancount == 0 and pkt[IP].src == local_ip:
-            if len(dict) == 0:
-                if str(pkt['DNS Question Record'].qname):
-                    spoofed_packet = IP(dst=pkt[IP].src) \
-                                     / UDP(dport=pkt[UDP].sport, sport=53) \
-                                     / DNS(id=pkt[DNS].id, ancount=1, an=DNSRR(rrname=pkt[DNSQR].qname, rdata=local_ip))
-                    send(spoofed_packet, verbose=0)
-                return 'Spoofed DNS Response Sent'
+        if DNS in pkt and pkt[DNS].qr == 1 and pkt[IP].dst == local_ip:
+            print repr(pkt[DNS])
+            txn_id = pkt[DNS].id
+            q_url = pkt[DNSQR].qname
+            key = (txn_id, q_url)
+            ip_addrs = set()
+            ancnt = pkt[DNS].ancount
+            ttls = set()
+            for i in range(ancnt):
+                ip_addrs.add(pkt[DNSRR][i].rdata)
+                ttls.add(pkt[DNSRR][i].ttl)
+
+            print 'q_url:{0}, txn_id : {1}, IPs: {2}, acnt: {3}, ttl:{4}'.format(q_url, txn_id, str(ip_addrs), ancnt,
+                                                                                 ttls)
+            if key in map:
+                existing_val = map[key]
+                # IP will be same
+                if ip_addrs.issubset(existing_val[0]):
+                    print 'False positive case with overlapping IPs'
+                    return ''
+                if ttls == existing_val[2]:
+                    print 'False positive case with matching TTL values'
+                    return ''
+                print '{0} DNS poisoning attempt '.format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+                print 'TXID {0} Request {1}'.format(txn_id, q_url)
+                print 'Original IPs:{0} , original TTLs:'.format(str(existing_val[0]), str(existing_val(2)))
+                print 'New IPs {0}'.format(str(ip_addrs))
             else:
-                qn = str(pkt['DNS Question Record'].qname)
-                if qn and qn in dict:
-                    new_ip = dict[qn]
-                    spoofed_packet = IP(dst=pkt[IP].src) \
-                                     / UDP(dport=pkt[UDP].sport, sport=53) \
-                                     / DNS(id=pkt[DNS].id, ancount=1, an=DNSRR(rrname=pkt[DNSQR].qname, rdata=new_ip))
-                    send(spoofed_packet, verbose=0)
+                map[key] = (ip_addrs, ancnt, ttls)
+                return
         else:
-            return 'hello'
+            return
 
     return process
 
@@ -70,16 +85,16 @@ def get_default_interface():
 
 
 def main(argv):
-    dict = {}
+    map = {}
     trace_file, interface_name, bpf_expr = parse_args(argv)
     # interface = get_default_interface() if interface_name is '' else interface_name
     interface = get_default_interface() if interface_name is '' else interface_name
     local_ip = get_local_ip(interface)
-    bpf_filt = 'udp port 53 && ip dst {0}'.format(local_ip) if (bpf_expr is '') else bpf_expr
+    bpf_filt = 'udp src port 53 && ip dst {0}'.format(local_ip) if (bpf_expr is '') else bpf_expr
     if trace_file is '':
-        sniff(iface=interface, filter=bpf_filt, prn=callback(dict, get_local_ip(interface)))
+        sniff(iface=interface, filter=bpf_filt, prn=callback(map, local_ip))
     else:
-        sniff(offline=trace_file, iface=interface, filter=bpf_filt, prn=callback(dict, local_ip))
+        sniff(offline=trace_file, iface=interface, filter=bpf_filt, prn=callback(map, local_ip))
 
 
 if __name__ == "__main__":

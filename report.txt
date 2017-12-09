@@ -17,16 +17,7 @@ pip install netifaces
 3. expression (compulsory): BPF filter to apply while listening
 
 ####Example:
-1. If connecting to a pbproxy service on localhost:2234
-`./bin/pbproxy -k mykey localhost 2234`
-2. If tunneling SSH (-v for verbose SSH) via PbProxy service on localhost:2234
-`ssh -o 'ProxyCommand ./bin/pbproxy -k  mykey localhost 2234' -v localhost`
-
-##### In server mode
-1. Listen to connection on port 2234 and forward to localhost:1234
-`./bin/pbproxy -k mykey -l 2234 localhost 1234`
-2. If tunneling SSH
-`./bin/pbproxy -k mykey -l 2234 localhost 22`
+1. sudo python dnsinject.py -i ens33 'udp dst port 53' (spoof all DNS packets)
 
 
 ## Dnsdetect
@@ -44,18 +35,12 @@ pip install netifaces
 2. [-i] (optional): network interface for listening
 3. expression (compulsory): BPF filter to apply while listening
 
-#### Logic for :
-1. If connecting to a pbproxy service on localhost:2234
-`./bin/pbproxy -k mykey localhost 2234`
-2. If tunneling SSH (-v for verbose SSH) via PbProxy service on localhost:2234
-`ssh -o 'ProxyCommand ./bin/pbproxy -k  mykey localhost 2234' -v localhost`
+####Example:
+1. sudo python dnsdetect.py -i ens33 'udp src port 53'
 
-##### In server mode
-1. Listen to connection on port 2234 and forward to localhost:1234
-`./bin/pbproxy -k mykey -l 2234 localhost 1234`
-2. If tunneling SSH
-`./bin/pbproxy -k mykey -l 2234 localhost 22`
-
+#### Logic for identifying false positives:
+If two DNS responses have different IP addresses but their TTL is the same, it is highly probable that they are from the correct
+DNS server. It is quite tough(improbable) for an attacker to guess TTL correctly
 
 
 ### Student details
